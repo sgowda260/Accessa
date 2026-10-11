@@ -1,84 +1,161 @@
 # Accessa
 
-Accessa is an accessibility-first Chromium browser. The basic idea is pretty simple: you tell it what would make a page easier to use, it figures out a safe set of changes, and you get to decide whether those changes should be remembered.
+**An AI-powered accessibility browser that adapts webpages to individual user needs.**
 
-It is still a work in progress, but the main pieces are here. Accessa has a Jac planner, an Electron browser shell, an accessibility panel, deterministic quick actions, natural-language planning through NVIDIA NIM, reversible page changes, and saved preferences.
+Accessa is a Chromium-based desktop browser built with Electron that helps make websites easier to navigate, read, and interact with. Users can describe their accessibility preferences in natural language, review suggested modifications, and apply reversible changes to webpages.
 
-## How it works
+Developed at **JacHacks a2Tech 2026**, where our three-person team received the **Best of Google** award.
 
-Accessa is split into two main parts:
+## Features
 
-- Jac owns the product logic: profiles, preference memory, planning, validation, and explanations.
-- Electron/Node owns the actual browser: tabs, navigation, page snapshots, CSS/DOM changes, undo, and the IPC bridge.
+- **AI-Powered Accessibility:** Generate webpage adjustments from natural-language requests using NVIDIA NIM.
+- **Customizable Reading Experience:** Adjust text size, spacing, contrast, motion, and other accessibility settings.
+- **Built-in Browser:** Navigate websites with multiple tabs, an address bar, and Google Search fallback.
+- **Reversible Changes:** Preview planned modifications and undo applied adjustments.
+- **Persistent Preferences:** Save approved accessibility settings for individual pages, websites, or all websites.
+- **Quick Actions:** Apply predefined accessibility adjustments without relying on an AI model.
 
-The LLM does not get to run arbitrary code. It can only return structured, allowlisted accessibility actions. Electron validates those actions before changing the live page.
+## Tech Stack
 
-The normal flow looks like this:
+| Technology | Purpose |
+|---|---|
+| JavaScript / Node.js | Browser logic and application functionality |
+| Electron / Chromium | Desktop browser and webpage rendering |
+| Jac | Accessibility planning, validation, and preference management |
+| NVIDIA NIM | Natural-language accessibility planning |
+| HTML / CSS / DOM APIs | Webpage inspection and accessibility modifications |
+
+## Architecture
+
+Accessa separates browser execution from accessibility planning to keep webpage modifications controlled and predictable.
+
+**Electron Browser Layer**
+
+Handles navigation, tabs, webpage inspection, DOM/CSS modifications, and undo operations.
+
+**Jac Planning Layer**
+
+Manages accessibility preferences, validates modification plans, and generates structured accessibility actions.
+
+**AI Integration**
+
+Uses NVIDIA NIM to interpret natural-language requests and propose accessibility adjustments.
+
+### Application Workflow
 
 ```text
-webpage
-  → Electron snapshot
-  → Jac request
-  → deterministic or NVIDIA NIM plan
-  → user review
-  → Electron applies reversible changes
-  → optional preference save
+User Accessibility Request
+          |
+          v
+    Webpage Snapshot
+          |
+          v
+    Jac Planning Layer
+          |
+          v
+  AI / Deterministic Plan
+          |
+          v
+     User Approval
+          |
+          v
+   Validated DOM Changes
+          |
+          v
+   Optional Preference Save
 ```
 
-Saved preferences can be scoped to one page, one website, or all websites. Once a preference is explicitly approved, Accessa can reuse it automatically on matching pages without calling the LLM again.
+### Security and Validation
 
-## Run it locally
+Accessa uses Electron's interprocess communication (IPC) to coordinate browser operations while separating privileged application logic from webpage execution.
 
-You need Node/npm, Jac `0.37.23`, and the Electron dependencies.
+Accessibility changes are restricted to supported actions, validated before execution, and checked against the current page state to prevent invalid or outdated modifications.
+
+The AI does not execute arbitrary JavaScript on webpages.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js and npm
+- Jac `0.37.23`
+- Electron dependencies
+
+### Installation
+
+Clone the repository and install dependencies:
 
 ```bash
+git clone https://github.com/sgowda260/Accessa.git
+cd Accessa
 npm install
-cp .env.example .env
-npm run dev
 ```
 
-If you want the NVIDIA NIM planner, add your key to `.env`:
+Configure the environment:
+
+```bash
+cp .env.example .env
+```
+
+To enable NVIDIA NIM, add the following variables to `.env`:
 
 ```env
-NVIDIA_API_KEY=your_key_here
+NVIDIA_API_KEY=your_api_key
 NVIDIA_NIM_MODEL=meta/llama-3.1-8b-instruct
 ```
 
-Never commit `.env` or an API key.
+Start the application:
 
-There is also a deterministic demo page:
+```bash
+npm run dev
+```
+
+**Note:** Never commit API keys or `.env` files to version control.
+
+### Demo Mode
+
+Run the deterministic demonstration page:
 
 ```bash
 npm run demo
 ```
 
-Then open `http://127.0.0.1:4173/` in the browser shell.
+Open `http://127.0.0.1:4173/` inside the Accessa browser.
 
-## Useful checks
+## Testing
+
+The repository includes integration contract tests covering accessibility planning, action validation, stale page revisions, undo operations, provider failures, and preference persistence.
+
+Run the available checks:
 
 ```bash
 npm run jac:check
 node tests/integration/run-contract-tests.js
-git diff --check
 ```
 
-The contract tests cover snapshots, planning, invalid actions, stale revisions, rollback, undo, provider failures, voice unavailability, privacy, and preference persistence.
+Live Electron testing is still necessary to verify the complete browser, planning, modification, and preference-saving workflow.
 
-## Current state
+## Development Status
 
-The browser shell has normal browser basics like tabs, navigation, an address bar, Google search fallback, page snapshots, and an accessibility panel. Quick actions can be combined and applied together. Natural-language requests can produce multi-action plans, and applied LLM settings can be saved as Jac preferences.
+Accessa is an ongoing project. The repository includes the core browser interface, accessibility planning infrastructure, webpage modification system, and preference management.
 
-The part that still needs regular attention is live end-to-end testing in Electron. The local contract tests are useful, but they do not replace opening the app and checking the real page, planner, apply, undo, and save flow.
+Further end-to-end testing and refinement are needed before treating the application as production-ready.
 
-## Project notes
+## Contributors
 
-If you are working on the project, start with these files:
+Accessa was developed collaboratively by a three-person team at JacHacks a2Tech 2026.
 
-- [AGENTS.md](AGENTS.md) — project rules and architecture boundaries
-- [ARCHITECTURE.md](ARCHITECTURE.md) — how the pieces fit together
-- [CONTRACTS.md](CONTRACTS.md) — Jac/Electron message contracts
-- [DECISIONS.md](DECISIONS.md) — decisions we are keeping locked
-- [docs/VERTICAL_SLICE_RUNBOOK.md](docs/VERTICAL_SLICE_RUNBOOK.md) — live verification steps
-- [docs/DETERMINISTIC_ACTION_SPEC.md](docs/DETERMINISTIC_ACTION_SPEC.md) — supported accessibility actions
+**My contributions focused on:**
 
-The repo is intentionally Jac-heavy, while Electron stays focused on browser-specific work. If a change crosses that boundary, update the relevant contract and document the decision.
+- Developing the Electron browser infrastructure, including tab management and navigation.
+- Implementing secure IPC communication between application components.
+- Building webpage DOM inspection and accessibility-action validation.
+- Adding safeguards against invalid or outdated webpage modifications.
+
+Original team repository: [ASH-will-WIN/AccessibleBrowser](https://github.com/ASH-will-WIN/AccessibleBrowser)
+
+## Acknowledgments
+
+**JacHacks a2Tech 2026 — Best of Google**
+
+Built as a collaborative hackathon project exploring how AI and browser technologies can make the web more accessible.
